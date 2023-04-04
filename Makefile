@@ -33,6 +33,7 @@ DEBUG_CUDA_FLAGS := $(CUDA_FLAGS) -g3 -ggdb3 -O0 -fsanitize=address -fsanitize=u
 RELEASE_CUDA_FLAGS := $(CUDA_FLAGS) -O3
 
 BIN_DIR := bin/
+BIN_DIR_GUARD := @mkdir -p $(BIN_DIR)
 SRC_DIR := src/
 
 PROGRAM := $(BIN_DIR)matrix
@@ -45,12 +46,15 @@ debug: $(PROGRAM)_debug
 release: $(PROGRAM)-$(VERSION) 
 
 $(PROGRAM): $(SRC)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(CFLAGS) $< -o $@
 
 $(PROGRAM)_debug: $(SRC)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(DEBUG_FLAGS) $< -o $@
 
 $(PROGRAM)-$(VERSION): $(SRC)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(RELEASE_FLAGS) $< -o $@
 
 # CUDA support needed
@@ -59,12 +63,15 @@ debug_cuda: $(CUDA_PROGRAM)_debug
 release_cuda: $(CUDA_PROGRAM)-$(VERSION) 
 
 $(CUDA_PROGRAM): $(SRC)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(CUDA_FLAGS) $< -o $@
 
 $(CUDA_PROGRAM)_debug: $(SRC)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(DEBUG_CUDA_FLAGS) $< -o $@
 
 $(CUDA_PROGRAM)-$(VERSION): $(SRC)
+	@mkdir -p $(BIN_DIR)
 	$(CC) $(RELEASE_CUDA_FLAGS) $< -o $@
 
 
@@ -74,4 +81,4 @@ everything: all debug release cuda debug_cuda release_cuda
 .PHONY: clean
 
 clean:
-	rm -f $(BIN_DIR)* 
+	rm -rf $(BIN_DIR) 
