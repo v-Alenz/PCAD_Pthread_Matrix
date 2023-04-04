@@ -9,6 +9,7 @@ int main( void )
 {
 
     Matrix matrix_1, matrix_2, matrix_res;
+    matrix_res.data = NULL;
     matrix_init(&matrix_1, HIGH, WIDTH, 2.5f);
     matrix_init(&matrix_2, WIDTH, WIDTH, 1.5f);
     matrix_print(&matrix_1);

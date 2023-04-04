@@ -74,6 +74,7 @@ void matrix_delete(Matrix * const matrix){
         free(matrix->data[i]);
     }
     free(matrix->data);
+    matrix->data = NULL;
     matrix->h=0;
     matrix->w=0;
 }
