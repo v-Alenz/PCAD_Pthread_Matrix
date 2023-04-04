@@ -5,7 +5,7 @@
 #define WIDTH 5
 
 
-int main(int argc, char *argv[])
+int main( void )
 {
 
     Matrix matrix_1, matrix_2, matrix_res;
