@@ -21,16 +21,14 @@
  # with this program; if not, write to the Free Software Foundation, Inc.,
  # 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA. 
 
-
 VERSION := 0.1
 
 CC := clang
+NVCC := nvcc
 CFLAGS := -Wall -Wextra -pedantic -Werror
-CUDA_FLAGS := $(CFLAGS) -DCUDA
+CUDA_FLAGS := -DCUDA
 DEBUG_FLAGS := $(CFLAGS) -g3 -ggdb3 -O0 -fsanitize=address -fsanitize=undefined
 RELEASE_FLAGS := $(CFLAGS) -O3
-DEBUG_CUDA_FLAGS := $(CUDA_FLAGS) -g3 -ggdb3 -O0 -fsanitize=address -fsanitize=undefined
-RELEASE_CUDA_FLAGS := $(CUDA_FLAGS) -O3
 
 BIN_DIR := bin/
 BIN_DIR_GUARD := @mkdir -p $(BIN_DIR)
@@ -59,23 +57,13 @@ $(PROGRAM)-$(VERSION): $(SRC)
 
 # CUDA support needed
 cuda: $(CUDA_PROGRAM)
-debug_cuda: $(CUDA_PROGRAM)_debug
-release_cuda: $(CUDA_PROGRAM)-$(VERSION) 
 
 $(CUDA_PROGRAM): $(SRC)
 	@mkdir -p $(BIN_DIR)
-	$(CC) $(CUDA_FLAGS) $< -o $@
-
-$(CUDA_PROGRAM)_debug: $(SRC)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(DEBUG_CUDA_FLAGS) $< -o $@
-
-$(CUDA_PROGRAM)-$(VERSION): $(SRC)
-	@mkdir -p $(BIN_DIR)
-	$(CC) $(RELEASE_CUDA_FLAGS) $< -o $@
+	$(NVCC) $(CUDA_FLAGS) $< -o $@
 
 
-everything: all debug release cuda debug_cuda release_cuda
+everything: all debug release cuda
 
 
 .PHONY: clean
