@@ -30,6 +30,8 @@
 #include <stdint.h>
 #include <errno.h>
 #include <stdlib.h>
+#include <time.h>
+#include <pthread.h>
 
 
 struct matrix{
@@ -48,10 +50,16 @@ typedef struct matrix  Matrix;
 
 #define matrix_create_return(value) do{return_value=(value);goto matrix_create_to_return;}while(0);
 Errno matrix_create(Matrix * const matrix, uint32_t const h, uint32_t const w){
-    if (h==0 || w==0) {
-        return EMATRIXSIZEISZERO; 
-    }
     Errno return_value = 0;
+    if (h==0 && w==0) {
+        matrix->w = 0;
+        matrix->h = 0;
+        matrix->data = NULL; 
+        matrix_create_return(return_value);
+    }
+    if (h==0 || w==0) {
+        matrix_create_return(EMATRIXSIZEISZERO)
+    }
     matrix->h = h;
     matrix->w = w;
     matrix->data = (float**)malloc(sizeof(float*)*h);
@@ -93,18 +101,48 @@ Errno matrix_fill(Matrix const * const matrix, float const value){
 }
 
 
-#define matrix_init_return(value) do{return_value=(value);goto matrix_init_to_return;}while(0);
+#define matrix_init_return_random(value) do{return_value=(value);goto matrix_init_to_return_random;}while(0);
 Errno matrix_init(Matrix * const matrix, uint32_t const h, uint32_t const w, float const value){
     Errno return_value = 0;
     return_value = matrix_create(matrix, h, w);
     if(return_value != 0){
-        matrix_init_return(return_value);
+        matrix_init_return_random(return_value);
     }
     return_value = matrix_fill(matrix, value);
     if(return_value != 0){
-        matrix_init_return(return_value);
+        matrix_init_return_random(return_value);
     }
-matrix_init_to_return:
+matrix_init_to_return_random:
+    return return_value;
+}
+
+
+Errno matrix_fill_random(Matrix const * const matrix, uint32_t limit){
+    if(matrix == NULL){
+        return EMATRIXISNULL;
+    }
+    srand(time(NULL));
+    for (uint32_t i=0; i<matrix->h; i++){
+        for(uint32_t j=0; j<matrix->w; j++){
+            matrix->data[i][j] = (float)(rand()%(limit*1000))/1000;
+        }
+    }
+    return 0;
+}
+
+
+#define matrix_init_return_random(value) do{return_value=(value);goto matrix_init_to_return_random;}while(0);
+Errno matrix_init_random(Matrix * const matrix, uint32_t const h, uint32_t const w, uint32_t limit){
+    Errno return_value = 0;
+    return_value = matrix_create(matrix, h, w);
+    if(return_value != 0){
+        matrix_init_return_random(return_value);
+    }
+    return_value = matrix_fill_random(matrix, limit);
+    if(return_value != 0){
+        matrix_init_return_random(return_value);
+    }
+matrix_init_to_return_random:
     return return_value;
 }
 
@@ -181,6 +219,69 @@ matrix_multiply_to_return:
     return return_value;
 }
 
+
+struct matrix_multiply_pthread_worker_params{
+    Matrix* first;
+    Matrix* second;
+    Matrix* result;
+    uint32_t block_size;
+    uint32_t block_index;
+}; 
+
+
+void * matrix_multiply_pthread_worker(void * matrix_multiply_pthread_args){
+    struct matrix_multiply_pthread_worker_params* args = (struct matrix_multiply_pthread_worker_params*)matrix_multiply_pthread_args;
+    printf("sono il thread: %u\n", args->block_index);
+    return NULL;
+}
+
+
+#define matrix_multiply_pthread_return(value) do{return_value=(value);goto matrix_multiply_pthread_to_return;}while(0);
+Errno matrix_multiply_pthread(Matrix * const first, Matrix * const second, Matrix * result, uint32_t threads){
+    Errno return_value = 0;
+    if(first->w != second->h){ 
+        matrix_multiply_pthread_return(EMATRIXINCONPATIBLESIZE);
+    }
+    if(result->data != NULL){
+        matrix_delete(result);
+    }
+    return_value = matrix_create(result, first->h, second->w);
+    if(return_value != 0){
+        matrix_multiply_pthread_return(return_value);
+    }
+    return_value = matrix_transpose(second);
+    if(return_value != 0){
+        matrix_multiply_pthread_return(return_value);
+    }
+    
+    pthread_t* threads_list;
+    uint32_t threads_list_index;
+    uint32_t block_size_spare;
+    uint32_t block_size;
+    struct matrix_multiply_pthread_worker_params* params;
+    params = (struct matrix_multiply_pthread_worker_params*)malloc(sizeof(struct matrix_multiply_pthread_worker_params));
+    threads_list = (pthread_t*)malloc(sizeof(pthread_t)*threads); 
+    block_size_spare = (result->h*result->w)%threads;
+    block_size = ((result->h*result->w)-block_size_spare)/threads; 
+    params->first = first;
+    params->second = second;
+    params->result = result;
+    params->block_size = block_size;
+    threads_list_index = 0;
+    for(uint32_t i=0; i<(result->h*result->w)/block_size; i++){
+        params->block_index = i; // TODO - Questo non e' thread_safe e va lockato
+        pthread_create(&threads_list[threads_list_index], NULL, matrix_multiply_pthread_worker, (void * )params);
+        threads_list_index++;
+    } 
+    free(params);
+    for(uint32_t i=0; i<threads; i++){
+        pthread_join(threads_list[i], NULL);
+    }
+    free(threads_list);
+
+matrix_multiply_pthread_to_return:
+    return return_value;
+}
 
 
 //TODO
