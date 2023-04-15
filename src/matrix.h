@@ -32,6 +32,8 @@
 #include <stdlib.h>
 #include <time.h>
 #include <pthread.h>
+#include <unistd.h>
+#include <sys/types.h>
 
 
 struct matrix{
@@ -227,11 +229,19 @@ struct matrix_multiply_pthread_worker_params{
     uint32_t block_size;
     uint32_t block_index;
 }; 
+typedef struct matrix_multiply_pthread_worker_params multiply_args;
 
 
+pthread_barrier_t block_index_barier;
+pthread_barrier_t multiply_barrier;
 void * matrix_multiply_pthread_worker(void * matrix_multiply_pthread_args){
-    struct matrix_multiply_pthread_worker_params* args = (struct matrix_multiply_pthread_worker_params*)matrix_multiply_pthread_args;
-    printf("sono il thread: %u\n", args->block_index);
+    multiply_args* args = (multiply_args*)matrix_multiply_pthread_args;
+    uint32_t block_index = args->block_index;
+    pthread_barrier_wait(&block_index_barier);
+    for(uint32_t i=args->block_size*block_index; i<(args->block_size*block_index)+args->block_size; i++){
+        args->result->data[i/args->result->w][i%args->result->w] = vector_multiply(args->first->data[i/args->result->w], args->second->data[i%args->result->w], args->first->w);
+    }
+    pthread_barrier_wait(&multiply_barrier);
     return NULL;
 }
 
@@ -242,10 +252,13 @@ Errno matrix_multiply_pthread(Matrix * const first, Matrix * const second, Matri
     if(first->w != second->h){ 
         matrix_multiply_pthread_return(EMATRIXINCONPATIBLESIZE);
     }
+    if(first->h*second->w < threads){ 
+        matrix_multiply_pthread_return(EMATRIXINCONPATIBLESIZE);
+    }
     if(result->data != NULL){
         matrix_delete(result);
     }
-    return_value = matrix_create(result, first->h, second->w);
+    return_value = matrix_init(result, first->h, second->w, 0.0f);
     if(return_value != 0){
         matrix_multiply_pthread_return(return_value);
     }
@@ -258,8 +271,8 @@ Errno matrix_multiply_pthread(Matrix * const first, Matrix * const second, Matri
     uint32_t threads_list_index;
     uint32_t block_size_spare;
     uint32_t block_size;
-    struct matrix_multiply_pthread_worker_params* params;
-    params = (struct matrix_multiply_pthread_worker_params*)malloc(sizeof(struct matrix_multiply_pthread_worker_params));
+    multiply_args* params;
+    params = (multiply_args*)malloc(sizeof(multiply_args));
     threads_list = (pthread_t*)malloc(sizeof(pthread_t)*threads); 
     block_size_spare = (result->h*result->w)%threads;
     block_size = ((result->h*result->w)-block_size_spare)/threads; 
@@ -268,11 +281,20 @@ Errno matrix_multiply_pthread(Matrix * const first, Matrix * const second, Matri
     params->result = result;
     params->block_size = block_size;
     threads_list_index = 0;
+    pthread_barrier_init(&block_index_barier, NULL, 2);
+    pthread_barrier_init(&multiply_barrier, NULL, threads+1);
     for(uint32_t i=0; i<(result->h*result->w)/block_size; i++){
         params->block_index = i; // TODO - Questo non e' thread_safe e va lockato
         pthread_create(&threads_list[threads_list_index], NULL, matrix_multiply_pthread_worker, (void * )params);
         threads_list_index++;
-    } 
+        pthread_barrier_wait(&block_index_barier);
+    }  
+    for(uint32_t i=block_size*threads;i<(block_size*threads)+block_size_spare; i++){
+        result->data[i/result->w][i%result->w] = vector_multiply(first->data[i/result->w], second->data[i%result->w], first->w);
+    }
+    pthread_barrier_wait(&multiply_barrier);
+    pthread_barrier_destroy(&block_index_barier);
+    pthread_barrier_destroy(&multiply_barrier);
     free(params);
     for(uint32_t i=0; i<threads; i++){
         pthread_join(threads_list[i], NULL);

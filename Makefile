@@ -26,7 +26,7 @@ VERSION := $(shell cat $(VERSION_FILE))
 
 CC := clang
 NVCC := nvcc
-CFLAGS := -Wall -Wextra -pedantic -Werror
+CFLAGS := -Wall -Wextra -pedantic -Werror -lpthread
 CUDA_FLAGS := DCUDA
 DEBUG_FLAGS := $(CFLAGS) -g3 -ggdb3 -O0 -fsanitize=address -fsanitize=undefined
 RELEASE_FLAGS := $(CFLAGS) -O3

@@ -23,29 +23,41 @@
  */ 
 
 #include "matrix.h"
+#include "doomBench.h"
+#include <stdio.h>
 
 
-#define HIGH 4
-#define WIDTH 5
+#define HIGH 1000
+#define WIDTH 1500
 
+
+Matrix first, second, result;
+
+
+void setup( void ){
+    matrix_init(&first, HIGH, WIDTH, 1.0f);
+    matrix_init(&second, WIDTH, HIGH, 1.0f);
+    matrix_create(&result, 0, 0);
+}
+void after( void ){
+    matrix_delete(&first);
+    matrix_delete(&second);
+    matrix_delete(&result);
+}
+void multiply_singe_thread( void ){
+    matrix_multiply(&first, &second, &result);
+}
+void multiply_multi_pthread( void ){
+    matrix_multiply_pthread(&first, &second, &result, 20);
+}
 
 int main( void )
 {
-
-    Matrix matrix_1, matrix_2, matrix_res;
-    matrix_init(&matrix_1, HIGH, WIDTH, 2.5f);
-    matrix_init(&matrix_2, WIDTH, WIDTH, 1.5f);
-    matrix_create(&matrix_res, 0, 0);
-    /* matrix_print(&matrix_1); */
-    /* matrix_print(&matrix_2); */
-    matrix_multiply_pthread(&matrix_1, &matrix_2, &matrix_res, 5);
-    /* matrix_print(&matrix_res); */
-
-
-    matrix_delete(&matrix_1);
-    matrix_delete(&matrix_2);
-    matrix_delete(&matrix_res);
-
+    BENCMARK_INIT;
+    BENCMARK_SETUP(setup);
+    BENCMARK_AFTER(after);
+    BENCMARK(multiply_singe_thread);
+    BENCMARK(multiply_multi_pthread);
 
     return EXIT_SUCCESS;
 }
