@@ -265,12 +265,9 @@ Errno matrix_multiply_pthread(Matrix * const first, Matrix * const second, Matri
     return_value = matrix_transpose(second);
     if(return_value != 0){
         matrix_multiply_pthread_return(return_value);
-    }
-    
+    } 
     pthread_t* threads_list;
-    uint32_t threads_list_index;
-    uint32_t block_size_spare;
-    uint32_t block_size;
+    uint32_t threads_list_index, block_size_spare, block_size;
     multiply_args* params;
     params = (multiply_args*)malloc(sizeof(multiply_args));
     threads_list = (pthread_t*)malloc(sizeof(pthread_t)*threads); 
@@ -284,7 +281,7 @@ Errno matrix_multiply_pthread(Matrix * const first, Matrix * const second, Matri
     pthread_barrier_init(&block_index_barier, NULL, 2);
     pthread_barrier_init(&multiply_barrier, NULL, threads+1);
     for(uint32_t i=0; i<(result->h*result->w)/block_size; i++){
-        params->block_index = i; // TODO - Questo non e' thread_safe e va lockato
+        params->block_index = i;
         pthread_create(&threads_list[threads_list_index], NULL, matrix_multiply_pthread_worker, (void * )params);
         threads_list_index++;
         pthread_barrier_wait(&block_index_barier);
@@ -305,15 +302,5 @@ matrix_multiply_pthread_to_return:
     return return_value;
 }
 
-
-//TODO
-
-// funzione che moltiplica smazzandosi le dimensioni dei blocchi
-
-// funzione che prende in bocca i blocchi e moltiplica e ritorna i/il valore/i
-
-// TODO FACOLTATIVO
-
-// funzione che legge la matrici da file che qui si fa dura a testare
 
 #endif // !PTHREAD_MATRIX_H

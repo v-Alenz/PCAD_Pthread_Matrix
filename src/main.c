@@ -27,28 +27,57 @@
 #include <stdio.h>
 
 
-#define HIGH 1000
-#define WIDTH 1500
+#define M 1000
+#define N 1500
+#define P 1200
 
 
-Matrix first, second, result;
+Matrix A, B, C, R, Rm;
 
 
 void setup( void ){
-    matrix_init(&first, HIGH, WIDTH, 1.0f);
-    matrix_init(&second, WIDTH, HIGH, 1.0f);
-    matrix_create(&result, 0, 0);
+    matrix_init(&A, M, N, 1.0f);
+    matrix_init(&B, N, P, 1.0f);
+    matrix_init(&C, P, M, 1.0f);
+    matrix_create(&R, 0, 0);
+    matrix_create(&Rm, 0, 0);
 }
 void after( void ){
-    matrix_delete(&first);
-    matrix_delete(&second);
-    matrix_delete(&result);
+    matrix_delete(&A);
+    matrix_delete(&B);
+    matrix_delete(&C);
+    matrix_delete(&R);
+    matrix_delete(&Rm);
 }
 void multiply_singe_thread( void ){
-    matrix_multiply(&first, &second, &result);
+    matrix_multiply(&A, &B, &Rm);
+    matrix_multiply(&C, &Rm, &R);
 }
-void multiply_multi_pthread( void ){
-    matrix_multiply_pthread(&first, &second, &result, 20);
+void multiply_multi_pthread_2( void ){
+    matrix_multiply_pthread(&A, &B, &Rm, 2);
+    matrix_multiply_pthread(&C, &Rm, &R, 2);
+}
+
+void multiply_multi_pthread_4( void ){
+    matrix_multiply_pthread(&A, &B, &Rm, 4);
+    matrix_multiply_pthread(&C, &Rm, &R, 4);
+}
+
+void multiply_multi_pthread_8( void ){
+    matrix_multiply_pthread(&A, &B, &Rm, 8);
+    matrix_multiply_pthread(&C, &Rm, &R, 8);
+}
+
+void multiply_multi_pthread_16( void ){
+    matrix_multiply_pthread(&A, &B, &Rm, 16);
+    matrix_multiply_pthread(&C, &Rm, &R, 16);
+}
+
+
+void print_bencmark_result( Bencmark* bencmark ){
+    printf("Function Name: %s\n", bencmark->function_name);
+    printf("Execuiton time: %ums\n", bencmark->milliseconds_result/1000); 
+    printf("===========================================================\n");
 }
 
 int main( void )
@@ -56,8 +85,17 @@ int main( void )
     BENCMARK_INIT;
     BENCMARK_SETUP(setup);
     BENCMARK_AFTER(after);
+    printf("== MATRIX MULTIPLY BENCMARK ===============================\n");
     BENCMARK(multiply_singe_thread);
-    BENCMARK(multiply_multi_pthread);
+    print_bencmark_result(&bencmark);
+    BENCMARK(multiply_multi_pthread_2);
+    print_bencmark_result(&bencmark);
+    BENCMARK(multiply_multi_pthread_4);
+    print_bencmark_result(&bencmark);
+    BENCMARK(multiply_multi_pthread_8);
+    print_bencmark_result(&bencmark);
+    BENCMARK(multiply_multi_pthread_16);
+    print_bencmark_result(&bencmark);
 
     return EXIT_SUCCESS;
 }

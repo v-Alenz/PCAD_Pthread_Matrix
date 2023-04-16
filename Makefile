@@ -27,7 +27,7 @@ VERSION := $(shell cat $(VERSION_FILE))
 CC := clang
 NVCC := nvcc
 CFLAGS := -Wall -Wextra -pedantic -Werror -lpthread
-CUDA_FLAGS := DCUDA
+CUDA_FLAGS := -DCUDA
 DEBUG_FLAGS := $(CFLAGS) -g3 -ggdb3 -O0 -fsanitize=address -fsanitize=undefined
 RELEASE_FLAGS := $(CFLAGS) -O3
 
@@ -38,6 +38,7 @@ SRC_DIR := src/
 PROGRAM := $(BIN_DIR)matrix
 CUDA_PROGRAM := $(PROGRAM)_cuda
 SRC := $(SRC_DIR)main.c
+CUDA_SRC := $(SRC_DIR)main.cu
 
 
 all: $(PROGRAM)
@@ -59,7 +60,7 @@ $(PROGRAM)-$(VERSION): $(SRC)
 # CUDA support needed
 cuda: $(CUDA_PROGRAM)
 
-$(CUDA_PROGRAM): $(SRC)
+$(CUDA_PROGRAM): $(CUDA_SRC)
 	@mkdir -p $(BIN_DIR)
 	$(NVCC) $(CUDA_FLAGS) $< -o $@
 

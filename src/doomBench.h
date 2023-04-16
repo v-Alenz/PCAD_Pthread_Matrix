@@ -88,6 +88,7 @@ void set_result_time(Bencmark* benchmark_struct){
     get_starting_time(&bencmark); \
     function(); \
     get_ending_time(&bencmark); \
+    set_result_time(&bencmark); \
     if(use_after) after_function(); 
 
 
